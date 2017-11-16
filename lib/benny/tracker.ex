@@ -76,8 +76,8 @@ defmodule Benny.Tracker do
       ip_byte_2 :: size(8),
       ip_byte_3 :: size(8),
       ip_byte_4 :: size(8),
-      port :: size(16),
-      remaining :: binary >>
+      port      :: size(16),
+      remaining :: binary()>>
   ) do
     # size is in bits
     # so, IP is first 4 bytes,

@@ -54,8 +54,25 @@ defmodule DecoderTest do
     assert Decoder.decode(list5) == {["chuck", %{"sam" => "iam"}], "garbage"}
   end
 
-  test "decodes an example .torrent file" do
+  test "decodes info->pieces from string to SHA1 chunks of 20 bytes" do
     torrent_file_data = File.read!("test/ubuntu-17.04-desktop-amd64.iso.torrent")
-    assert {_result, ""} = Decoder.decode(torrent_file_data)
+    {decoded_data, ""} = Decoder.decode(torrent_file_data)
+    decoded_pieces = Decoder.decode_pieces(decoded_data["info"]["pieces"])
+
+    assert length(decoded_pieces) == 3069
+    assert Enum.all?(decoded_pieces, fn(piece) -> byte_size(piece) == 20 end)
+  end
+
+  test "decodes an example .torrent file" do
+    decoded_data = Decoder.decode_file("test/ubuntu-17.04-desktop-amd64.iso.torrent")
+    keys = decoded_data |> Map.keys |> MapSet.new
+
+    assert is_map(decoded_data)
+    assert length(decoded_data["info"]["pieces"]) == 3069
+    assert Enum.all?(decoded_data["info"]["pieces"], fn(piece) -> byte_size(piece) == 20 end)
+
+    assert Enum.all?(["announce", "announce-list", "comment", "creation date", "info"], fn(key) ->
+      MapSet.member?(keys, key)
+    end)
   end
 end

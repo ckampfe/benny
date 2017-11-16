@@ -14,7 +14,8 @@ defmodule Benny.Mixfile do
   # Run "mix help compile.app" to learn about applications.
   def application do
     [
-      extra_applications: [:logger]
+      extra_applications: [:logger],
+      mod: {Benny.Application, []}
     ]
   end
 
@@ -22,6 +23,7 @@ defmodule Benny.Mixfile do
   defp deps do
     [
       {:httpoison, "~> 0.13.0"},
+      {:gen_state_machine, "~> 2.0"},
       {:stream_data, "~> 0.3", only: :test}
     ]
   end

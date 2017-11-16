@@ -13,9 +13,12 @@ defmodule Benny.Decoder do
 
 
   def decode_file(file) do
-    file
-    |> File.read!
-    |> decode
+    {data, ""} =
+      file
+      |> File.read!
+      |> decode
+
+    update_in(data, ["info", "pieces"], &decode_pieces/1)
   end
 
   def decode(f) do
@@ -128,5 +131,14 @@ defmodule Benny.Decoder do
   def advance(""), do: {"", ""}
   def advance(<< s :: binary-size(1), rest :: binary>>) do
     {s, rest}
+  end
+
+  def decode_pieces(pieces_string) do
+    decode_pieces(pieces_string, [])
+  end
+
+  def decode_pieces("", pieces), do: pieces
+  def decode_pieces(<<piece :: binary-size(20), rest :: binary()>>, pieces) do
+    decode_pieces(rest, [piece | pieces])
   end
 end

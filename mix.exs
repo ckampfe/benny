@@ -5,8 +5,8 @@ defmodule Benny.Mixfile do
     [
       app: :benny,
       version: "0.1.0",
-      elixir: "~> 1.5",
-      start_permanent: Mix.env == :prod,
+      elixir: "~> 1.6",
+      start_permanent: Mix.env() == :prod,
       deps: deps()
     ]
   end
@@ -22,7 +22,7 @@ defmodule Benny.Mixfile do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:httpoison, "~> 0.13.0"},
+      {:httpoison, "~> 1.2"},
       {:gen_state_machine, "~> 2.0"},
       {:stream_data, "~> 0.3", only: :test}
     ]

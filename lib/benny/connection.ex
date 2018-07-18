@@ -1,14 +1,16 @@
 defmodule Benny.Connection do
   use GenStateMachine
-  alias Benny.PeerSupervisor
   require Logger
+
+  ### API
 
   def child_spec(opts) do
     %{
       id: __MODULE__,
       start: {__MODULE__, :start_link, [opts]},
       type: :worker,
-      restart: :permanent,
+      # let connections die all the way, no matter what
+      restart: :temporary,
       shutdown: 500
     }
   end
@@ -17,65 +19,50 @@ defmodule Benny.Connection do
     GenStateMachine.start_link(__MODULE__, args)
   end
 
-  def init([port]) do
-    data =
-      %{port: port,
-        listen_socket: nil,
-        acceptor_loop: nil,
-        sockets: MapSet.new()
-      }
-
-    {:ok, :initializing_listener, data, [{:next_event, :internal, :initialize_listen_socket}]}
+  def set_tcp_active(pid) do
+    GenStateMachine.cast(pid, :set_tcp_active)
   end
 
-  def handle_event(:internal, :initialize_listen_socket, state, data) do
-    Logger.debug("state: #{state}")
+  ### CALLBACKS
 
-    {:ok, listen_socket} =
-      :gen_tcp.listen(
-        data[:port],
-        [:binary, {:packet, 0}, {:active, true}]
-      )
-
-    Logger.debug("set up listen socket: #{inspect(listen_socket)}")
+  def init(args) do
+    data = args
 
     {
-      :next_state,
-      :initializing_acceptor_loop,
-      Map.put(data, :listen_socket, listen_socket),
-      [{:next_event, :internal, :initialize_acceptor_loop}]
+      :ok,
+      :ready_to_receive,
+      data,
+      [{:next_event, :internal, :ready_to_receive}]
     }
   end
 
-  def handle_event(:internal, :initialize_acceptor_loop, state, data) do
-    Logger.debug("state: #{state}")
-    # :gen_tcp.accept/1 is blocking,
-    # so it must be called in another process,
-    # which is why we use proc_lib below.
-    # using raw proc_lib is not great, should figure out a way to supervise this,
-    # but linking ensures a total failure if the acceptor dies for some reason,
-    # which is good
-    acceptor_loop = :proc_lib.spawn_link(__MODULE__, :acceptor_loop, [self(), data[:listen_socket]])
-
-    {:next_state, :accepting, Map.put(data, :acceptor_loop, acceptor_loop)}
+  def handle_event(:internal, :ready_to_receive, _state, _data) do
+    :keep_state_and_data
   end
 
-  def acceptor_loop(from, listen_socket) when is_pid(from) and is_port(listen_socket) do
-    {:ok, socket} = :gen_tcp.accept(listen_socket)
-    {:ok, child} = PeerSupervisor.start_child(socket)
-    :gen_tcp.controlling_process(socket, child)
-    send(from, {:tcp_accept, socket, child})
-    acceptor_loop(from, listen_socket)
+  def handle_event(:cast, :set_tcp_active, state, data) do
+    :inet.setopts(data[:accept_socket], active: true)
+    Logger.debug("Set to active TCP receive mode: #{inspect(data[:accept_socket])}")
+    handle_event(:internal, :ready_to_receive, state, data)
   end
 
   ### TCP handlers
 
-  def handle_event(:info, {:tcp_accept, socket, child}, state, data) do
-    Logger.debug("state: #{state}")
-    Logger.debug("accepted new socket #{inspect(socket)} for #{inspect(child)}")
-    {
-      :keep_state,
-      Map.update(data, :sockets, [], fn(sockets) -> MapSet.put(sockets, socket) end),
-    }
+  def handle_event(:info, {:tcp, socket, packet}, _state, data) do
+    Logger.debug("Received from #{data[:ip]}:#{data[:port]} #{inspect(socket)}: #{packet}")
+    {:keep_state, data}
+  end
+
+  def handle_event(:info, {:tcp_error, socket, reason}, _state, data) do
+    Logger.debug(
+      "Socket error: #{data[:ip]}:#{data[:port]} #{inspect(socket)}: #{inspect(reason)}"
+    )
+
+    {:stop, :normal}
+  end
+
+  def handle_event(:info, {:tcp_closed, socket}, _state, data) do
+    Logger.debug("Socket closed: #{data[:ip]}:#{data[:port]} #{inspect(socket)}")
+    {:stop, :normal}
   end
 end

@@ -6,7 +6,7 @@ defmodule EncoderTest do
   test "encodes ints" do
     assert Encoder.encode(0) == "i0e"
 
-    assert Encoder.encode(40284024) == "i40284024e"
+    assert Encoder.encode(40_284_024) == "i40284024e"
 
     assert Encoder.encode(-9) == "i-9e"
   end
@@ -32,17 +32,16 @@ defmodule EncoderTest do
     assert Encoder.encode(data2) == dict2
   end
 
-
   test "parses and encodes a file" do
+    # load the raw bencoded torrent string for later comparison
+    torrent_file_string = File.read!("test/ubuntu-17.04-desktop-amd64.iso.torrent")
     # load example torrent and parse it
-    torrent_file_data = File.read!("test/ubuntu-17.04-desktop-amd64.iso.torrent")
-    {file_data, ""} = Decoder.decode(torrent_file_data)
+    torrent_file_data = Decoder.decode_torrent_file("test/ubuntu-17.04-desktop-amd64.iso.torrent")
 
     # reencode it to bencode
-    encoded_data = Encoder.encode(file_data)
+    encoded_data = Encoder.encode(torrent_file_data)
 
     # is the reencoded version equal to the original?
-    assert encoded_data == torrent_file_data
+    assert encoded_data == torrent_file_string
   end
 end
-

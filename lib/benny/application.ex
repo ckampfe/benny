@@ -8,10 +8,10 @@ defmodule Benny.Application do
   def start(_type, _args) do
     # List all child processes to be supervised
     children = [
-      # Starts a worker by calling: Benny.Worker.start_link(arg)
-      # {Benny.Worker, arg},
-      {Benny.PeerSupervisor, []},
-      {Benny.ConnectionSupervisor, []}
+      {Registry, keys: :unique, name: Benny.TorrentRegistry},
+      {Benny.FleetSupervisor, []},
+      {Benny.ConnectionSupervisor, []},
+      {Benny.ListenerSupervisor, %{port: 6881}}
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

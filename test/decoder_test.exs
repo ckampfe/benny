@@ -7,15 +7,17 @@ defmodule DecoderTest do
   test "decodes ints" do
     assert Decoder.decode("i0e") == {0, ""}
 
-    assert Decoder.decode("i40284024e") == {40284024, ""}
+    assert Decoder.decode("i40284024e") == {40_284_024, ""}
 
     assert Decoder.decode("i-9e") == {-9, ""}
 
     assert_raise Decoder.DecodeError, "cannot have -0", fn ->
       Decoder.decode("i-0e")
     end
+
     assert_raise Decoder.DecodeError, "cannot have leading 0", fn ->
-      Decoder.decode("i03e") end
+      Decoder.decode("i03e")
+    end
   end
 
   test "decodes strings" do
@@ -31,10 +33,11 @@ defmodule DecoderTest do
     assert Decoder.decode(dict2) == {%{"cow" => "moo", "spam" => "eggs"}, ";kajsdf;lsdf"}
 
     dict3 = "d3:cowd6:nested4:dicte4:spam4:eggsesomeextrainput"
+
     assert Decoder.decode(dict3) == {
-      %{"cow" => %{"nested" => "dict"}, "spam" => "eggs"},
-      "someextrainput"
-    }
+             %{"cow" => %{"nested" => "dict"}, "spam" => "eggs"},
+             "someextrainput"
+           }
   end
 
   test "decodes lists" do
@@ -60,19 +63,19 @@ defmodule DecoderTest do
     decoded_pieces = Decoder.decode_pieces(decoded_data["info"]["pieces"])
 
     assert length(decoded_pieces) == 3069
-    assert Enum.all?(decoded_pieces, fn(piece) -> byte_size(piece) == 20 end)
+    assert Enum.all?(decoded_pieces, fn piece -> byte_size(piece) == 20 end)
   end
 
   test "decodes an example .torrent file" do
-    decoded_data = Decoder.decode_file("test/ubuntu-17.04-desktop-amd64.iso.torrent")
-    keys = decoded_data |> Map.keys |> MapSet.new
+    decoded_data = Decoder.decode_torrent_file("test/ubuntu-17.04-desktop-amd64.iso.torrent")
+    keys = decoded_data |> Map.keys() |> MapSet.new()
 
     assert is_map(decoded_data)
     assert length(decoded_data["info"]["pieces"]) == 3069
-    assert Enum.all?(decoded_data["info"]["pieces"], fn(piece) -> byte_size(piece) == 20 end)
+    assert Enum.all?(decoded_data["info"]["pieces"], fn piece -> byte_size(piece) == 20 end)
 
-    assert Enum.all?(["announce", "announce-list", "comment", "creation date", "info"], fn(key) ->
-      MapSet.member?(keys, key)
-    end)
+    assert Enum.all?(["announce", "announce-list", "comment", "creation date", "info"], fn key ->
+             MapSet.member?(keys, key)
+           end)
   end
 end

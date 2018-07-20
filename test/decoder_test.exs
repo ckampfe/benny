@@ -38,6 +38,9 @@ defmodule DecoderTest do
              %{"cow" => %{"nested" => "dict"}, "spam" => "eggs"},
              "someextrainput"
            }
+
+    dict4 = "d6:peers60:e"
+    assert Decoder.decode(dict4) == {%{"peers6" => []}, ""}
   end
 
   test "decodes lists" do

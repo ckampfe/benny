@@ -11,7 +11,7 @@ defmodule Benny.Application do
       {Registry, keys: :unique, name: Benny.TorrentRegistry},
       {Benny.FleetSupervisor, []},
       {Benny.ConnectionSupervisor, []},
-      {Benny.ListenerSupervisor, %{port: 6881}}
+      {Benny.ListenerSupervisor, %{port_range: 6881..50000}}
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

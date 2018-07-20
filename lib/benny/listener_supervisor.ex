@@ -5,12 +5,14 @@ defmodule Benny.ListenerSupervisor do
     Supervisor.start_link(__MODULE__, args, name: __MODULE__)
   end
 
-  def init(%{port: _port} = args) do
+  def init(%{port_range: _port_range} = args) do
     Supervisor.init(
       [
         {Benny.Listener, args}
       ],
-      strategy: :one_for_one
+      strategy: :one_for_one,
+      max_restarts: 3,
+      max_seconds: 5
     )
   end
 end
